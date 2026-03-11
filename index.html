@@ -1,0 +1,1407 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Halka Arz Simülatörü</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+<style>
+:root{
+  --bg:#0a0e1a;--surface:#111827;--card:#1a2235;--border:#2a3650;
+  --accent:#f4b942;--teal:#00d4aa;--blue:#4a9eff;--text:#e8edf5;
+  --muted:#7a8aa0;--green:#22c55e;--red:#ef4444;--purple:#a855f7;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'IBM Plex Sans',sans-serif;min-height:100vh}
+header{background:linear-gradient(135deg,#0d1425,#1a2235);border-bottom:1px solid var(--border);
+  padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:64px;
+  position:sticky;top:0;z-index:100}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:21px;letter-spacing:3px;color:#f4b942}
+.logo span{color:var(--text)}
+.htag{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);
+  border:1px solid var(--border);padding:4px 10px;border-radius:4px;letter-spacing:1px}
+.container{max-width:1500px;margin:0 auto;padding:28px 24px}
+.sec-title{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:3px;color:#1B3A5C;
+  margin-bottom:16px;display:flex;align-items:center;gap:12px}
+.sec-title::after{content:'';flex:1;height:1px;background:linear-gradient(to right,#dde3ec,transparent)}
+.note{background:#fffbeb;border:1px solid #fde68a;border-radius:8px;
+  padding:12px 16px;font-size:12px;font-family:'IBM Plex Mono',monospace;color:#6b7a8d;
+  margin-bottom:24px;line-height:1.8}
+.note strong{color:#d97706}
+.note .warn{color:#dc2626}
+
+/* GRID */
+.sgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px;margin-bottom:28px}
+.empty-state{grid-column:1/-1;text-align:center;padding:56px 24px;border:2px dashed #dde3ec;
+  border-radius:12px;color:#6b7a8d;font-family:'IBM Plex Mono',monospace;background:#ffffff}
+.es-icon{font-size:52px;margin-bottom:12px}
+.es-title{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:3px;
+  color:#cbd5e1;margin-bottom:10px}
+.es-sub{font-size:12px;line-height:1.9}
+.es-sub strong{color:#2563A8}
+
+/* CARD */
+.scard{background:#ffffff;border:1px solid #dde3ec;border-radius:12px;
+  overflow:visible;transition:border-color .2s,transform .2s,box-shadow .2s;position:relative;
+  box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.scard:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,0,0,.1)}
+.scard-hdr{padding:12px 16px 10px;display:flex;align-items:flex-start;justify-content:space-between;
+  background:#f8fafc;border-bottom:1px solid #dde3ec;
+  border-radius:12px 12px 0 0;gap:10px}
+.scard-left{flex:1;min-width:0}
+.inp-code{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;
+  background:transparent;border:none;border-bottom:2px dashed #cbd5e1;
+  width:100%;outline:none;transition:border-color .2s;padding:0 0 2px;color:#1a2235}
+.inp-code:focus{border-bottom-color:var(--accent)}
+.inp-code::placeholder{color:#cbd5e1;font-size:18px}
+.inp-name{font-size:10px;font-family:'IBM Plex Mono',monospace;color:#6b7a8d;
+  background:transparent;border:none;border-bottom:1px dashed #cbd5e1;
+  width:100%;outline:none;transition:border-color .2s;padding:4px 0;margin-top:4px}
+.inp-name:focus{border-bottom-color:#94a3b8;color:#1a2235}
+.inp-name::placeholder{color:#cbd5e1}
+.badge-wrap{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0}
+.bsel{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;letter-spacing:1px;
+  padding:5px 10px;border-radius:4px;cursor:pointer;background:transparent;
+  outline:none;-webkit-appearance:none;appearance:none;min-width:96px;text-align:center}
+.bl{background:rgba(34,197,94,.12)!important;color:#16a34a!important;border:1px solid rgba(34,197,94,.35)!important}
+.bw{background:rgba(124,58,237,.12)!important;color:#7c3aed!important;border:1px solid rgba(124,58,237,.35)!important}
+.bn{background:rgba(37,99,168,.12)!important;color:#2563a8!important;border:1px solid rgba(37,99,168,.35)!important}
+.cdots{display:flex;gap:5px}
+.cdot{width:13px;height:13px;border-radius:50%;cursor:pointer;border:2px solid transparent;
+  transition:transform .15s,border-color .15s;flex-shrink:0}
+.cdot:hover{transform:scale(1.35)}
+.cdot.active{border-color:#1a2235;transform:scale(1.25)}
+.scard-body{padding:14px 16px;background:#ffffff;border-radius:0 0 12px 12px}
+.irow{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.ig label{display:block;font-size:10px;font-family:'IBM Plex Mono',monospace;
+  color:#6b7a8d;margin-bottom:5px;letter-spacing:1px;text-transform:uppercase}
+.ig input{width:100%;background:#f8fafc;border:1px solid #dde3ec;
+  border-radius:6px;padding:8px 10px;color:#1a2235;font-family:'IBM Plex Mono',monospace;
+  font-size:14px;font-weight:600;transition:border-color .2s;outline:none}
+.ig input:focus{border-color:#2563A8;background:#ffffff}
+.cp{color:#d97706!important}.cl{color:#0891b2!important}
+.cpct{color:#2563a8!important}.ck{color:#7c3aed!important}
+.alot{display:flex;align-items:center;justify-content:space-between;
+  background:#f0fdfa;border:1px solid #99f6e4;
+  border-radius:6px;padding:8px 12px;margin-bottom:10px}
+.alot-lbl{font-size:9px;font-family:'IBM Plex Mono',monospace;color:#0891b2;letter-spacing:.5px}
+.alot-sub{font-size:9px;color:#6b7a8d;font-family:'IBM Plex Mono',monospace}
+.alot-val{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:700;color:#0891b2;text-align:right}
+.malchip{display:flex;align-items:center;justify-content:space-between;
+  background:#fefce8;border:1px solid #fde68a;
+  border-radius:6px;padding:8px 12px;font-family:'IBM Plex Mono',monospace;margin-top:8px}
+.malchip span{font-size:10px;color:#6b7a8d}
+.malchip strong{font-size:14px;font-weight:700;color:#d97706}
+.btn-del{position:absolute;top:-10px;right:-10px;background:#ffffff;
+  border:1px solid #dde3ec;color:#94a3b8;cursor:pointer;
+  font-size:11px;padding:3px 7px;border-radius:50%;transition:all .15s;
+  line-height:1;z-index:10;box-shadow:0 2px 8px rgba(0,0,0,.1)}
+.btn-del:hover{color:#dc2626;border-color:#dc2626;background:#fef2f2}
+
+/* BİLDİRİM BUTONU */
+.btn-notif{background:rgba(37,99,168,.1);border:1px solid rgba(37,99,168,.35);color:#2563A8}
+.btn-notif:hover{background:rgba(37,99,168,.2)}
+.btn-notif.active{background:rgba(22,163,74,.1);border-color:rgba(22,163,74,.35);color:#16a34a}
+.btn-notif.denied{background:rgba(220,38,38,.08);border-color:rgba(220,38,38,.3);color:#dc2626}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:500;
+  display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
+.modal-overlay.hidden{display:none}
+.modal{background:#ffffff;border-radius:16px;padding:32px;max-width:440px;width:100%;
+  box-shadow:0 20px 60px rgba(0,0,0,.2);position:relative}
+.modal-icon{font-size:48px;text-align:center;margin-bottom:12px}
+.modal-title{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:2px;
+  color:#1B3A5C;text-align:center;margin-bottom:8px}
+.modal-sub{font-size:13px;color:#6b7a8d;text-align:center;line-height:1.7;margin-bottom:24px;
+  font-family:'IBM Plex Sans',sans-serif}
+.modal-sub strong{color:#1B3A5C}
+.modal-features{background:#f8fafc;border-radius:10px;padding:16px;margin-bottom:24px}
+.modal-feature{display:flex;align-items:center;gap:10px;padding:5px 0;
+  font-size:12px;font-family:'IBM Plex Mono',monospace;color:#334155}
+.modal-feature .fi{font-size:16px;width:22px;text-align:center}
+.modal-btns{display:flex;gap:10px}
+.modal-btn-prim{flex:1;background:#1B3A5C;color:#fff;border:none;border-radius:8px;
+  padding:12px;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:700;
+  letter-spacing:1px;cursor:pointer;transition:background .15s}
+.modal-btn-prim:hover{background:#2563A8}
+.modal-btn-sec{flex:1;background:#f1f5f9;color:#64748b;border:none;border-radius:8px;
+  padding:12px;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:700;
+  letter-spacing:1px;cursor:pointer;transition:background .15s}
+.modal-btn-sec:hover{background:#e2e8f0}
+.modal-close{position:absolute;top:16px;right:16px;background:none;border:none;
+  font-size:20px;color:#94a3b8;cursor:pointer;line-height:1;padding:4px}
+.modal-close:hover{color:#1B3A5C}
+
+/* NOTIF STATUS BAR */
+.notif-bar{display:flex;align-items:center;gap:10px;background:#f0fdf4;
+  border:1px solid #bbf7d0;border-radius:8px;padding:10px 16px;margin-bottom:16px;
+  font-size:12px;font-family:'IBM Plex Mono',monospace;color:#16a34a}
+.notif-bar.warn{background:#fffbeb;border-color:#fde68a;color:#d97706}
+.notif-bar.err{background:#fef2f2;border-color:#fecaca;color:#dc2626}
+.notif-dot{width:8px;height:8px;border-radius:50%;background:currentColor;
+  animation:pulse 2s infinite;flex-shrink:0}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ADMIN PANEL */
+.admin-panel{background:#1B3A5C;border-radius:12px;padding:20px 24px;margin-bottom:24px;
+  border:2px solid #2563A8}
+.admin-title{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;
+  color:#f4b942;margin-bottom:4px}
+.admin-sub{font-size:11px;color:rgba(255,255,255,.5);font-family:'IBM Plex Mono',monospace;
+  margin-bottom:16px}
+.admin-row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.admin-input{flex:1;min-width:200px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);
+  border-radius:6px;padding:10px 14px;color:#fff;font-family:'IBM Plex Mono',monospace;
+  font-size:13px;outline:none;transition:border-color .2s}
+.admin-input:focus{border-color:#f4b942}
+.admin-input::placeholder{color:rgba(255,255,255,.3)}
+.btn-admin{background:#f4b942;color:#1B3A5C;font-weight:700;padding:10px 20px;
+  border:none;border-radius:6px;font-family:'IBM Plex Mono',monospace;font-size:12px;
+  letter-spacing:1px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.btn-admin:hover{background:#ffc845;transform:translateY(-1px)}
+.admin-stats{display:flex;gap:16px;margin-top:14px;flex-wrap:wrap}
+.astat{background:rgba(255,255,255,.07);border-radius:8px;padding:10px 16px;flex:1;min-width:100px}
+.astat-val{font-family:'Bebas Neue',sans-serif;font-size:24px;color:#fff;letter-spacing:1px}
+.astat-lbl{font-size:10px;color:rgba(255,255,255,.4);font-family:'IBM Plex Mono',monospace;
+  letter-spacing:.5px;margin-top:2px}
+
+/* SUPABASE KURULUM */
+.setup-card{background:#fff;border:1px solid #dde3ec;border-radius:12px;
+  padding:20px 24px;margin-bottom:20px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.setup-step{display:flex;gap:14px;padding:10px 0;border-bottom:1px solid #f1f5f9}
+.setup-step:last-child{border-bottom:none}
+.step-num{width:28px;height:28px;background:#1B3A5C;color:#fff;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;
+  font-size:14px;flex-shrink:0;margin-top:2px}
+.step-body{flex:1}
+.step-title{font-size:13px;font-weight:700;color:#1a2235;margin-bottom:4px;
+  font-family:'IBM Plex Sans',sans-serif}
+.step-desc{font-size:12px;color:#6b7a8d;line-height:1.6;font-family:'IBM Plex Sans',sans-serif}
+.step-code{background:#1B3A5C;color:#a5f3fc;border-radius:6px;padding:8px 12px;
+  font-family:'IBM Plex Mono',monospace;font-size:11px;margin-top:8px;
+  white-space:pre;overflow-x:auto;line-height:1.6}
+.copy-btn{background:#f1f5f9;border:1px solid #dde3ec;border-radius:4px;
+  padding:3px 10px;font-size:10px;font-family:'IBM Plex Mono',monospace;
+  cursor:pointer;color:#64748b;margin-left:8px;transition:all .15s}
+.copy-btn:hover{background:#e2e8f0}
+.controls{display:flex;gap:12px;margin-bottom:32px;flex-wrap:wrap;align-items:center}
+.btn{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:700;
+  letter-spacing:2px;text-transform:uppercase;padding:11px 22px;
+  border-radius:6px;border:none;cursor:pointer;transition:all .15s;white-space:nowrap}
+.btn-run{background:var(--accent);color:#0a0e1a}
+.btn-run:hover{background:#ffc845;transform:translateY(-1px)}
+.btn-add{background:rgba(0,212,170,.1);border:1px solid rgba(0,212,170,.3);color:var(--teal)}
+.btn-add:hover{background:rgba(0,212,170,.2)}
+.btn-xl{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:var(--green)}
+.btn-xl:hover{background:rgba(34,197,94,.2)}
+.btn-smp{background:rgba(244,185,66,.1);border:1px solid rgba(244,185,66,.3);color:var(--accent)}
+.btn-smp:hover{background:rgba(244,185,66,.2)}
+.btn-clr{background:transparent;border:1px solid var(--border);color:var(--muted)}
+.btn-clr:hover{border-color:var(--red);color:var(--red)}
+
+/* RESULTS */
+#results{display:none}
+.sumgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:32px}
+.sc{background:var(--card);border:1px solid var(--border);border-radius:10px;
+  padding:16px 18px;position:relative;overflow:hidden}
+.sc-code{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;margin-bottom:2px}
+.sc-name{font-size:9px;color:var(--muted);font-family:'IBM Plex Mono',monospace;
+  margin-bottom:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sc-row{display:flex;justify-content:space-between;margin-top:7px;align-items:center}
+.sc-lbl{font-size:9px;color:var(--muted);font-family:'IBM Plex Mono',monospace;letter-spacing:.5px}
+.sc-val{font-size:12px;font-weight:700;font-family:'IBM Plex Mono',monospace}
+.rtw{background:var(--card);border:1px solid var(--border);border-radius:12px;
+  overflow:hidden;margin-bottom:32px}
+.rth{padding:16px 20px;background:linear-gradient(135deg,var(--surface),var(--card));
+  border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.rtt{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:var(--accent)}
+.tscroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-family:'IBM Plex Mono',monospace;font-size:13px}
+thead th{background:var(--surface);padding:10px 14px;text-align:center;font-size:10px;
+  font-weight:700;letter-spacing:1.5px;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap}
+.thf{text-align:left!important;padding-left:20px!important}
+tbody tr{border-bottom:1px solid rgba(255,255,255,.04);transition:background .15s}
+tbody tr:hover{background:rgba(255,255,255,.03)}
+.harrow{background:rgba(244,185,66,.05)!important}
+tbody td{padding:10px 14px;text-align:center;white-space:nowrap}
+.tdf{text-align:left!important;padding-left:20px!important;font-weight:700}
+.c-gun{color:var(--muted)}.c-har{color:var(--accent);font-weight:700;font-size:11px}
+.c-f{color:var(--text)}.c-t{color:var(--blue)}.c-k{color:var(--teal);font-weight:700}
+.barw{display:flex;align-items:center;gap:6px}
+.bar{height:4px;border-radius:2px;background:linear-gradient(to right,var(--teal),var(--green));min-width:2px}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--card);
+  border:1px solid var(--accent);border-radius:8px;padding:12px 20px;
+  font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--accent);
+  transform:translateY(80px);opacity:0;transition:all .3s;z-index:999}
+.toast.show{transform:translateY(0);opacity:1}
+footer{text-align:center;padding:24px;color:var(--muted);font-size:11px;
+  font-family:'IBM Plex Mono',monospace;border-top:1px solid var(--border);margin-top:40px}
+@media(max-width:600px){
+  .container{padding:16px 12px}
+  .controls{flex-direction:column;align-items:stretch}
+  .irow{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">MİNİMAL YATIRIM HALKA ARZ <span>SİMÜLATÖRÜ</span></div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <button class="btn btn-notif" id="btn-notif" onclick="openNotifModal()" style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;letter-spacing:1px;padding:8px 16px;border-radius:6px;cursor:pointer;transition:all .15s">
+      🔔 &nbsp;BİLDİRİM AL
+    </button>
+    <div class="htag">TAVAN SERİSİ · KAZANÇ ANALİZİ</div>
+  </div>
+</header>
+
+<!-- BİLDİRİM MODAL -->
+<div class="modal-overlay hidden" id="notif-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeNotifModal()">✕</button>
+    <div class="modal-icon">🔔</div>
+    <div class="modal-title">YENİ ARZ BİLDİRİMİ</div>
+    <div class="modal-sub">
+      Yeni bir halka arz açıldığında <strong>anında bildirim</strong> alın.<br>
+      Tarayıcınız veya cihazınıza push bildirim gelir.
+    </div>
+    <div class="modal-features">
+      <div class="modal-feature"><span class="fi">📱</span> Telefon & bilgisayarda çalışır</div>
+      <div class="modal-feature"><span class="fi">⚡</span> Yeni arz açılır açılmaz bildirim gelir</div>
+      <div class="modal-feature"><span class="fi">🔕</span> İstediğiniz zaman iptal edebilirsiniz</div>
+      <div class="modal-feature"><span class="fi">🔒</span> Kişisel bilgi gerekmez</div>
+    </div>
+    <div id="notif-status"></div>
+    <div class="modal-btns">
+      <button class="modal-btn-prim" id="notif-main-btn" onclick="requestNotifPermission()">
+        🔔 &nbsp;BİLDİRİMLERİ AKTİF ET
+      </button>
+      <button class="modal-btn-sec" onclick="closeNotifModal()">Şimdi değil</button>
+    </div>
+    <div style="text-align:center;margin-top:14px;font-size:10px;color:#94a3b8;font-family:'IBM Plex Mono',monospace">
+      Supabase ile güvenli depolama · Bildirim verisi sadece push token'dır
+    </div>
+  </div>
+</div>
+
+<!-- ADMİN PANELİ -->
+<div id="admin-section" style="display:none">
+  <div class="container" style="padding-bottom:0">
+    <div class="admin-panel">
+      <div class="admin-title">🛠 ADMİN — BİLDİRİM GÖNDERİMİ</div>
+      <div class="admin-sub">Supabase'e kayıtlı tüm kullanıcılara push bildirim gönder &nbsp;·&nbsp; Kapatmak: <kbd style="background:rgba(255,255,255,.15);padding:1px 6px;border-radius:3px;font-size:10px">Ctrl+Shift+A</kbd></div>
+
+      <!-- SUPABASE AYAR KUTUSU -->
+      <div id="admin-config-box" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:14px 16px;margin-bottom:16px">
+        <div style="font-size:10px;color:#f4b942;font-family:'IBM Plex Mono',monospace;letter-spacing:1px;margin-bottom:10px">⚙ SUPABASE BAĞLANTISI</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <input class="admin-input" id="cfg-url"  placeholder="https://xxxx.supabase.co — Project URL" style="flex:1;min-width:220px"
+            oninput="previewConfig()"/>
+          <input class="admin-input" id="cfg-key"  placeholder="sb_publishable_... — Yayınlanabilir Anahtar" style="flex:2;min-width:220px"
+            oninput="previewConfig()"/>
+          <button class="btn-admin" onclick="saveConfig()" style="background:#00d4aa;color:#0a2a1a">💾 KAYDET</button>
+        </div>
+        <div id="cfg-status" style="font-size:10px;color:rgba(255,255,255,.4);font-family:'IBM Plex Mono',monospace;margin-top:8px">
+          Supabase URL ve API Key girerek kaydedin
+        </div>
+      </div>
+
+      <div class="admin-row">
+        <input class="admin-input" id="notif-title" placeholder="Bildirim başlığı — örn: YENİ ARZ: XYZCO" maxlength="60"/>
+        <input class="admin-input" id="notif-body"  placeholder="Mesaj — örn: HAR Fiyatı: 12.50 TL · Talep: 3-5 Mart" maxlength="120"/>
+        <button class="btn-admin" onclick="sendAdminNotif()">📤 &nbsp;GÖNDER</button>
+      </div>
+      <div class="admin-stats">
+        <div class="astat"><div class="astat-val" id="stat-subs">—</div><div class="astat-lbl">KAYITLI KULLANICI</div></div>
+        <div class="astat"><div class="astat-val" id="stat-sent">—</div><div class="astat-lbl">SON GÖNDERİM</div></div>
+        <div class="astat"><div class="astat-val" id="stat-status">—</div><div class="astat-lbl">DURUM</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- SUPABASE KURULUM REHBERİ (sadece kurulmamışsa göster) -->
+  <div id="setup-guide" style="display:none;margin-bottom:28px">
+    <div class="sec-title">⚙️ SUPABASE KURULUM REHBERİ</div>
+    <div class="setup-card">
+      <div class="setup-step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">Supabase hesabı oluşturun</div>
+          <div class="step-desc"><a href="https://supabase.com" target="_blank" style="color:#2563A8">supabase.com</a>'a gidin → "Start your project" → ücretsiz hesap açın → yeni proje oluşturun.</div>
+        </div>
+      </div>
+      <div class="setup-step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">Veritabanı tablosunu oluşturun</div>
+          <div class="step-desc">Supabase paneli → SQL Editor → aşağıdaki kodu yapıştırın → Run:</div>
+          <div class="step-code">CREATE TABLE push_subscribers (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  endpoint text UNIQUE NOT NULL,
+  p256dh text NOT NULL,
+  auth text NOT NULL,
+  created_at timestamptz DEFAULT now()
+);</div>
+          <button class="copy-btn" onclick="copyCode(this, `CREATE TABLE push_subscribers (\n  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,\n  endpoint text UNIQUE NOT NULL,\n  p256dh text NOT NULL,\n  auth text NOT NULL,\n  created_at timestamptz DEFAULT now()\n);`)">📋 Kopyala</button>
+        </div>
+      </div>
+      <div class="setup-step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">API anahtarlarınızı girin</div>
+          <div class="step-desc">Supabase → Settings → API → Project URL ve anon key'i kopyalayın. Aşağıya yapıştırın:</div>
+          <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+            <input id="cfg-url"  placeholder="https://xxxx.supabase.co" 
+              style="flex:1;min-width:200px;background:#f8fafc;border:1px solid #dde3ec;border-radius:6px;padding:8px 12px;font-family:'IBM Plex Mono',monospace;font-size:12px;outline:none;color:#1a2235"/>
+            <input id="cfg-key"  placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6Ikp..." type="password"
+              style="flex:2;min-width:200px;background:#f8fafc;border:1px solid #dde3ec;border-radius:6px;padding:8px 12px;font-family:'IBM Plex Mono',monospace;font-size:12px;outline:none;color:#1a2235"/>
+            <button onclick="saveConfig()" style="background:#1B3A5C;color:#fff;border:none;border-radius:6px;padding:8px 16px;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:1px">KAYDET</button>
+          </div>
+        </div>
+      </div>
+      <div class="setup-step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <div class="step-title">VAPID anahtarı oluşturun (Web Push için)</div>
+          <div class="step-desc">Terminalde çalıştırın (Node.js gerekli):</div>
+          <div class="step-code">npx web-push generate-vapid-keys</div>
+          <button class="copy-btn" onclick="copyCode(this,'npx web-push generate-vapid-keys')">📋 Kopyala</button>
+          <div class="step-desc" style="margin-top:8px">Çıkan <strong>Public Key</strong>'i aşağıya girin:</div>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <input id="cfg-vapid" placeholder="BxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxA"
+              style="flex:1;background:#f8fafc;border:1px solid #dde3ec;border-radius:6px;padding:8px 12px;font-family:'IBM Plex Mono',monospace;font-size:11px;outline:none;color:#1a2235"/>
+            <button onclick="saveConfig()" style="background:#1B3A5C;color:#fff;border:none;border-radius:6px;padding:8px 16px;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:1px">KAYDET</button>
+          </div>
+        </div>
+      </div>
+      <div class="setup-step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <div class="step-title">Service Worker dosyasını oluşturun</div>
+          <div class="step-desc">Simülatörünüzü bir web sunucusunda yayınlıyorsanız, aşağıdaki <code>sw.js</code> dosyasını kök dizinine koyun:</div>
+          <div class="step-code">self.addEventListener('push', e => {
+  const d = e.data?.json() || {};
+  self.registration.showNotification(
+    d.title || 'Yeni Halka Arz!',
+    { body: d.body, icon: '/icon.png',
+      badge: '/badge.png', tag: 'halkarz' }
+  );
+});</div>
+          <button class="copy-btn" onclick="copyCode(this,`self.addEventListener('push', e => {\n  const d = e.data?.json() || {};\n  self.registration.showNotification(\n    d.title || 'Yeni Halka Arz!',\n    { body: d.body, icon: '/icon.png',\n      badge: '/badge.png', tag: 'halkarz' }\n  );\n});`)">📋 Kopyala</button>
+        </div>
+      </div>
+    </div>
+    <button onclick="document.getElementById('setup-guide').style.display='none'" 
+      style="background:#f1f5f9;border:1px solid #dde3ec;border-radius:6px;padding:8px 20px;
+      font-family:'IBM Plex Mono',monospace;font-size:11px;color:#64748b;cursor:pointer;margin-bottom:8px">
+      ✕ Rehberi Kapat
+    </button>
+  </div>
+
+  <div class="note">
+    📌 <strong>Tavan Kuralı:</strong> BİST'te her gün maks. <strong>%10</strong> artış geçerlidir &nbsp;|&nbsp;
+    Formül: <strong>Her Gün = Önceki Gün × 1.10</strong> &nbsp;|&nbsp;
+    <strong>Kişi Başı Lot</strong> = Toplam Bireysel Lot ÷ Katılımcı (otomatik) &nbsp;|&nbsp;
+    <span class="warn">⚠ Tüm kazançlar brüttür — stopaj ve komisyon dahil değildir</span>
+  </div>
+
+  <div class="sec-title">HİSSELER — VERİ GİRİŞİ</div>
+  <div class="sgrid" id="sgrid"></div>
+
+  <div class="controls">
+    <button class="btn btn-run"  onclick="calculate()">▶ &nbsp;SİMÜLASYONU ÇALIŞTIR</button>
+    <button class="btn btn-add"  onclick="addStock()">＋ &nbsp;YENİ HİSSE EKLE</button>
+    <button class="btn btn-xl"   onclick="exportExcel()" id="btnxl" style="display:none">⬇ &nbsp;EXCEL İNDİR</button>
+    <button class="btn btn-smp"  onclick="loadSample()">📋 &nbsp;ÖRNEK VERİ YÜKLE</button>
+    <button class="btn btn-clr"  onclick="clearAll()">✕ &nbsp;TEMİZLE</button>
+  </div>
+
+  <div id="results">
+    <div class="sec-title">ÖZET</div>
+    <div class="sumgrid" id="sumgrid"></div>
+    <div class="sec-title">10 TAVAN GÜNÜ — KAZANÇ TABLOSU</div>
+    <div id="tablewrap"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<footer>Kaynak: halkarz.com &nbsp;·&nbsp; KAP Resmi Bildirimleri &nbsp;·&nbsp; Simülasyon amaçlıdır — yatırım tavsiyesi değildir
+  &nbsp;·&nbsp;
+  <span onclick="openAdminFromFooter()" style="cursor:pointer;color:#94a3b8;font-size:10px;
+    border:1px solid #dde3ec;padding:2px 8px;border-radius:4px;user-select:none"
+    title="Admin Paneli">⚙ admin</span>
+</footer>
+
+<script>
+// ── RENK PALETİ ──────────────────────────────────────────────────
+const CM = {
+  green:  {dot:'#22c55e', border:'rgba(34,197,94,.45)',  code:'#22c55e', xls:'FF22C55E'},
+  blue:   {dot:'#4a9eff', border:'rgba(74,158,255,.45)', code:'#4a9eff', xls:'FF4A9EFF'},
+  purple: {dot:'#a855f7', border:'rgba(168,85,247,.45)', code:'#a855f7', xls:'FFA855F7'},
+  red:    {dot:'#ef4444', border:'rgba(239,68,68,.45)',  code:'#ef4444', xls:'FFEF4444'},
+  amber:  {dot:'#f4b942', border:'rgba(244,185,66,.45)', code:'#f4b942', xls:'FFF4B942'},
+  teal:   {dot:'#00d4aa', border:'rgba(0,212,170,.45)',  code:'#00d4aa', xls:'FF00D4AA'},
+};
+const CKEYS = Object.keys(CM);
+const BADGE = {live:'FİİLİ', wait:'BEKLENİYOR', new:'YENİ ARZ'};
+
+// ── ÖRNEK VERİLER ────────────────────────────────────────────────
+// ── 2026 HALKA ARZ VERİLERİ (Ocak → Mart, tümü fiili sonuçlar) ──
+const SAMPLE = [
+  // ── OCAK 2026 ──────────────────────────────────────────────────
+  {code:'MEYSU', name:'Meysu Gıda Sanayi ve Ticaret A.Ş.',
+    har:7.50,  tbl:175000000, kat:646385,  lot:122, pct:80.0,  badge:'live', color:'teal',
+    tarih:'5-6-7 Ocak 2026',  ilkIslem:'13 Ocak 2026'},
+  {code:'FRMPL', name:'Formül Plastik ve Metal Sanayi A.Ş.',
+    har:30.24, tbl:26520000,  kat:679834,  lot:39,  pct:40.0,  badge:'live', color:'blue',
+    tarih:'7-8-9 Ocak 2026',  ilkIslem:'15 Ocak 2026'},
+  {code:'ZGYO',  name:'Z Gayrimenkul Yatırım Ortaklığı A.Ş.',
+    har:9.77,  tbl:84500000,  kat:431279,  lot:98,  pct:40.0,  badge:'live', color:'purple',
+    tarih:'7-8-9 Ocak 2026',  ilkIslem:'16 Ocak 2026'},
+  {code:'UCAYM', name:'Üçay Mühendislik Enerji ve İklimlendirme Tek. A.Ş.',
+    har:18.00, tbl:42000000,  kat:796720,  lot:54,  pct:70.0,  badge:'live', color:'amber',
+    tarih:'14-15-16 Ocak 2026', ilkIslem:'22 Ocak 2026'},
+  {code:'NETCD', name:'Netcad Yazılım A.Ş.',
+    har:46.00, tbl:40000000,  kat:994717,  lot:24,  pct:80.0,  badge:'live', color:'red',
+    tarih:'28-29-30 Ocak 2026', ilkIslem:'5 Şubat 2026'},
+  {code:'AKHAN', name:'Akhan Un Fabrikası ve Tarım Ürünleri Gıda San. A.Ş.',
+    har:21.50, tbl:32820000,  kat:959086,  lot:34,  pct:80.0,  badge:'live', color:'green',
+    tarih:'28-29-30 Ocak 2026', ilkIslem:'6 Şubat 2026'},
+  // ── ŞUBAT 2026 ─────────────────────────────────────────────────
+  {code:'BESTE', name:'Best Brands Grup Enerji Yatırım A.Ş.',
+    har:14.70, tbl:54578570,  kat:795046,  lot:68,  pct:99.81, badge:'live', color:'teal',
+    tarih:'5-6 Şubat 2026',   ilkIslem:'11 Şubat 2026'},
+  {code:'ATATR', name:'Ata Turizm İşletmecilik Taşımacılık Mad. Kuyumculuk A.Ş.',
+    har:11.20, tbl:112000000, kat:622600,  lot:180, pct:40.0,  badge:'live', color:'blue',
+    tarih:'11-12-13 Şubat 2026', ilkIslem:'19 Şubat 2026'},
+  {code:'EMPAE', name:'Empa Elektronik Sanayi ve Ticaret A.Ş.',
+    har:22.00, tbl:22800000,  kat:1134244, lot:21,  pct:60.0,  badge:'live', color:'purple',
+    tarih:'19-20 Şubat 2026', ilkIslem:'26 Şubat 2026'},
+  // ── MART 2026 ──────────────────────────────────────────────────
+  {code:'SVGYO', name:'Savur Gayrimenkul Yatırım Ortaklığı A.Ş.',
+    har:3.64,  tbl:118160000, kat:701429,  lot:175, pct:40.0,  badge:'live', color:'red',
+    tarih:'26-27 Şubat–2 Mart 2026', ilkIslem:'7 Mart 2026'},
+  {code:'GENKM', name:'Gentaş Kimya San. ve Tic. Paz. A.Ş.',
+    har:11.00, tbl:124592752, kat:805312,  lot:178, pct:99.79, badge:'live', color:'green',
+    tarih:'2-3 Mart 2026',    ilkIslem:'6 Mart 2026'},
+  {code:'LXGYO', name:'Luxera Gayrimenkul Yatırım Ortaklığı A.Ş.',
+    har:12.05, tbl:48000000,  kat:0,       lot:56,  pct:40.0,  badge:'wait', color:'amber',
+    tarih:'2-3-4 Mart 2026',  ilkIslem:'9-13 Mart 2026'},
+  {code:'MCARD', name:'Metropal Kurumsal Hizmetler A.Ş. (MetropolCard)',
+    har:80.00, tbl:9072000,   kat:964747,  lot:9,   pct:48.0,  badge:'live', color:'purple',
+    tarih:'2-3-4 Mart 2026',  ilkIslem:'6 Mart 2026'},
+];
+
+let stocks = [], lastR = [];
+
+// ── RENDER ───────────────────────────────────────────────────────
+function renderStocks() {
+  const g = document.getElementById('sgrid');
+  g.innerHTML = '';
+  if (!stocks.length) {
+    g.innerHTML = `<div class="empty-state">
+      <div class="es-icon">📈</div>
+      <div class="es-title">HİSSE BULUNMUYOR</div>
+      <div class="es-sub">
+        <strong>＋ Yeni Hisse Ekle</strong> ile istediğiniz hisseyi girin<br>
+        ya da <strong>📋 Örnek Veri Yükle</strong> ile Mart 2026 arzlarını görün
+      </div>
+    </div>`;
+    return;
+  }
+  stocks.forEach((s,i) => g.appendChild(makeCard(s,i)));
+}
+
+function makeCard(s, i) {
+  const cm = CM[s.color] || CM.amber;
+  const dots = CKEYS.map(k =>
+    `<div class="cdot${s.color===k?' active':''}" style="background:${CM[k].dot}" onclick="setColor(${i},'${k}')"></div>`
+  ).join('');
+  const bopts = Object.entries(BADGE).map(([v,l]) =>
+    `<option value="${v}"${s.badge===v?' selected':''}>${l}</option>`
+  ).join('');
+
+  const d = document.createElement('div');
+  d.className = 'scard';
+  d.id = `card-${i}`;
+  d.style.borderColor = cm.border;
+  d.innerHTML = `
+    <div class="scard-hdr">
+      <div class="scard-left">
+        <input class="inp-code" id="code-${i}" value="${s.code}" placeholder="BORSA KODU"
+          style="color:${cm.code}" maxlength="8"
+          oninput="stocks[${i}].code=this.value"/>
+        <input class="inp-name" id="name-${i}" value="${s.name}" placeholder="Şirket adını yazın..."
+          oninput="stocks[${i}].name=this.value"/>
+      </div>
+      <div class="badge-wrap">
+        <select class="bsel ${bc(s.badge)}" id="badge-${i}"
+          onchange="stocks[${i}].badge=this.value;this.className='bsel '+bc(this.value)">
+          ${bopts}
+        </select>
+        <div class="cdots">${dots}</div>
+      </div>
+    </div>
+    <div class="scard-body">
+      <div class="irow">
+        <div class="ig">
+          <label>HAR Fiyatı (TL)</label>
+          <input class="cp" type="number" step="0.01" min="0" id="har-${i}" value="${s.har}"
+            oninput="stocks[${i}].har=+this.value;autoLot(${i});updMal(${i})"/>
+        </div>
+        <div class="ig">
+          <label>Bireysel Tahsisat %</label>
+          <input class="cpct" type="number" step="0.01" min="0" max="100" id="pct-${i}" value="${s.pct}"
+            oninput="stocks[${i}].pct=+this.value"/>
+        </div>
+      </div>
+      <div class="irow">
+        <div class="ig">
+          <label>Toplam Bireysel Lot</label>
+          <input class="cl" type="number" step="1" min="0" id="tbl-${i}" value="${s.tbl||''}"
+            placeholder="örn: 48 000 000"
+            oninput="stocks[${i}].tbl=+this.value;autoLot(${i})"/>
+        </div>
+        <div class="ig">
+          <label>Katılımcı Sayısı</label>
+          <input class="ck" type="number" step="1" min="0" id="kat-${i}" value="${s.kat||''}"
+            placeholder="örn: 800 000"
+            oninput="stocks[${i}].kat=+this.value;autoLot(${i})"/>
+        </div>
+      </div>
+      <div class="alot">
+        <div>
+          <div class="alot-lbl">🔄 OTOMATİK KİŞİ BAŞI LOT</div>
+          <div class="alot-sub">Toplam Bireysel Lot ÷ Katılımcı Sayısı</div>
+        </div>
+        <div class="alot-val" id="av-${i}">— lot</div>
+      </div>
+      <div class="ig">
+        <label>Kişi Başı Lot &nbsp;<span style="color:var(--muted);font-size:9px">(otomatik veya manuel)</span></label>
+        <input class="cl" type="number" step="1" min="1" id="lot-${i}" value="${s.lot}"
+          oninput="stocks[${i}].lot=+this.value;updMal(${i})"/>
+      </div>
+      <div class="malchip" id="mal-${i}">
+        <span>💰 Toplam Maliyet</span>
+        <strong>${fmtTL(s.har * s.lot)}</strong>
+      </div>
+    </div>
+    <button class="btn-del" onclick="delStock(${i})" title="Kaldır">✕</button>
+  `;
+  setTimeout(() => autoLot(i), 0);
+  return d;
+}
+
+function bc(b){ return b==='live'?'bl':b==='wait'?'bw':'bn'; }
+
+function autoLot(i) {
+  const tbl = +document.getElementById(`tbl-${i}`)?.value || 0;
+  const kat = +document.getElementById(`kat-${i}`)?.value || 0;
+  const av  = document.getElementById(`av-${i}`);
+  const lel = document.getElementById(`lot-${i}`);
+  if (tbl > 0 && kat > 0) {
+    const v = Math.floor(tbl / kat);
+    if (av)  av.textContent = v.toLocaleString('tr-TR') + ' lot';
+    if (lel) { lel.value = v; stocks[i].lot = v; }
+  } else {
+    if (av) av.textContent = '— lot';
+  }
+  updMal(i);
+}
+
+function updMal(i) {
+  const h = +document.getElementById(`har-${i}`)?.value || 0;
+  const l = +document.getElementById(`lot-${i}`)?.value || 0;
+  const el = document.getElementById(`mal-${i}`);
+  if (el) el.innerHTML = `<span>💰 Toplam Maliyet</span><strong>${fmtTL(h*l)}</strong>`;
+  stocks[i].har = h; stocks[i].lot = l;
+}
+
+function setColor(i, k) {
+  stocks[i].color = k;
+  const g = document.getElementById('sgrid');
+  g.replaceChild(makeCard(stocks[i], i), document.getElementById(`card-${i}`));
+}
+
+// ── HESAPLAMA ────────────────────────────────────────────────────
+function getDays(har, lot) {
+  return Array.from({length:10}, (_,gi) => {
+    const f = parseFloat((har * Math.pow(1.10, gi+1)).toFixed(4));
+    return { g:gi+1, f, top:+(f*lot).toFixed(2), kaz:+((f-har)*lot).toFixed(2) };
+  });
+}
+
+function calculate() {
+  if (!stocks.length) { showToast('Önce hisse ekleyin!'); return; }
+  lastR = stocks.map((s,i) => {
+    const code  = document.getElementById(`code-${i}`)?.value || s.code;
+    const name  = document.getElementById(`name-${i}`)?.value || s.name;
+    const har   = +document.getElementById(`har-${i}`)?.value  || s.har;
+    const lot   = +document.getElementById(`lot-${i}`)?.value  || s.lot;
+    const pct   = +document.getElementById(`pct-${i}`)?.value  || s.pct;
+    const kat   = +document.getElementById(`kat-${i}`)?.value  || 0;
+    const tbl   = +document.getElementById(`tbl-${i}`)?.value  || 0;
+    const badge = document.getElementById(`badge-${i}`)?.value || s.badge;
+    return { code, name, har, lot, pct, kat, tbl, badge, color:s.color,
+      mal: har*lot, days: getDays(har,lot) };
+  });
+  renderSummary();
+  renderTable();
+  document.getElementById('results').style.display = 'block';
+  document.getElementById('btnxl').style.display = 'inline-block';
+  document.getElementById('results').scrollIntoView({behavior:'smooth', block:'start'});
+  showToast('✓ Simülasyon tamamlandı — ' + lastR.length + ' hisse');
+}
+
+function renderSummary() {
+  document.getElementById('sumgrid').innerHTML = lastR.map(r => {
+    const cm = CM[r.color]||CM.amber;
+    const k5=r.days[4].kaz, k10=r.days[9].kaz;
+    const get = ((r.days[9].f/r.har-1)*100).toFixed(1);
+    return `<div class="sc" style="border-color:${cm.border}">
+      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:${cm.code};border-radius:10px 10px 0 0"></div>
+      <div class="sc-code" style="color:${cm.code}">${r.code}</div>
+      <div class="sc-name">${r.name}</div>
+      <div class="sc-row"><span class="sc-lbl">HAR FİYATI</span><span class="sc-val" style="color:var(--accent)">${fmtTL(r.har)}</span></div>
+      <div class="sc-row"><span class="sc-lbl">KİŞİ BAŞI LOT</span><span class="sc-val" style="color:var(--teal)">${r.lot} lot</span></div>
+      <div class="sc-row"><span class="sc-lbl">MALİYET</span><span class="sc-val" style="color:var(--blue)">${fmtTL(r.mal)}</span></div>
+      <div class="sc-row" style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border)">
+        <span class="sc-lbl">5. GÜN KAZANÇ</span><span class="sc-val" style="color:var(--green)">${fmtTL(k5)}</span>
+      </div>
+      <div class="sc-row"><span class="sc-lbl">10. GÜN KAZANÇ</span><span class="sc-val" style="color:var(--green)">${fmtTL(k10)}</span></div>
+      <div class="sc-row"><span class="sc-lbl">10. GÜN GETİRİ</span><span class="sc-val" style="color:var(--green)">%${get}</span></div>
+    </div>`;
+  }).join('');
+}
+
+function renderTable() {
+  const maxK = Math.max(...lastR.flatMap(r => r.days.map(d => d.kaz)), 1);
+  let h = `<div class="rtw"><div class="rth">
+    <div class="rtt">TAVAN SERİSİ SİMÜLASYONU — ${lastR.length} HİSSE</div>
+    <div style="font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace">Her Gün ×1.10 &nbsp;|&nbsp; 10 Gün</div>
+  </div><div class="tscroll"><table><thead><tr><th class="thf">GÜN</th>`;
+
+  lastR.forEach(r => {
+    const cm = CM[r.color]||CM.amber;
+    h += `<th colspan="3" style="border-left:1px solid var(--border);color:${cm.code}">
+      ${r.code} <span style="color:var(--muted);font-size:10px">· ${r.lot} lot · ${fmtTL(r.har)}</span>
+    </th>`;
+  });
+  h += `</tr><tr><th></th>`;
+  lastR.forEach(() => {
+    h += `<th style="border-left:1px solid var(--border)">HİSSE FİYATI</th>
+          <th>TOPLAM TUTAR</th><th>KAZANÇ</th>`;
+  });
+  h += `</tr></thead><tbody>`;
+
+  // HAR satırı
+  h += `<tr class="harrow"><td class="tdf"><span class="c-har">● HAR</span></td>`;
+  lastR.forEach(r => {
+    h += `<td style="border-left:1px solid var(--border)" class="c-f">${fmtTL4(r.har)}</td>
+          <td class="c-t">${fmtTL(r.mal)}</td>
+          <td><span style="color:var(--muted)">—</span></td>`;
+  });
+  h += `</tr>`;
+
+  for (let gi = 0; gi < 10; gi++) {
+    const alt = gi%2===1 ? ' style="background:rgba(255,255,255,.015)"':'';
+    h += `<tr${alt}><td class="tdf"><span class="c-gun">${gi+1}. GÜN</span></td>`;
+    lastR.forEach(r => {
+      const d = r.days[gi];
+      const bw = Math.round((d.kaz/maxK)*72);
+      h += `<td style="border-left:1px solid var(--border)" class="c-f">${fmtTL4(d.f)}</td>
+            <td class="c-t">${fmtTL(d.top)}</td>
+            <td><div class="barw"><span class="c-k">${fmtTL(d.kaz)}</span>
+            <div class="bar" style="width:${bw}px"></div></div></td>`;
+    });
+    h += `</tr>`;
+  }
+  h += `</tbody></table></div></div>`;
+  document.getElementById('tablewrap').innerHTML = h;
+}
+
+// ── EXCEL — PROFESYONEL STİL ─────────────────────────────────────
+function exportExcel() {
+  if (!lastR.length) { showToast('Önce simülasyonu çalıştırın!'); return; }
+
+  const wb = XLSX.utils.book_new();
+  const tarih = new Date().toLocaleDateString('tr-TR');
+
+  /* --- Stil yardımcıları (xlsx-js-style formatı) --- */
+  // xlsx-js-style: RGB renkleri 6 haneli (RRGGBB), FF prefix YOK
+  function rgb(hex) { return hex.replace(/^FF/,''); } // FF1B3A5C → 1B3A5C
+
+  function cell(v, bold=false, fgHex='000000', bgHex=null, sz=11,
+                fmt=null, align='center', italic=false, border=true) {
+    const s = {
+      font: {bold, color:{rgb: rgb(fgHex)}, sz, italic, name:'Calibri'},
+      alignment: {horizontal:align, vertical:'center', wrapText:true},
+    };
+    if (bgHex) s.fill = {patternType:'solid', fgColor:{rgb: rgb(bgHex)}};
+    if (border) s.border = {
+      top:   {style:'thin', color:{rgb:'CCCCCC'}},
+      bottom:{style:'thin', color:{rgb:'CCCCCC'}},
+      left:  {style:'thin', color:{rgb:'CCCCCC'}},
+      right: {style:'thin', color:{rgb:'CCCCCC'}},
+    };
+    const t = typeof v === 'number' ? 'n' : 's';
+    const o = {v, t, s};
+    if (fmt) o.z = fmt;
+    return o;
+  }
+
+  // Renk sabitleri (FF prefix ile — rgb() fonksiyonu strip eder)
+  const H1BG  = 'FF1B3A5C'; // koyu lacivert başlık
+  const H2BG  = 'FF2563A8'; // mavi alt başlık
+  const GRENBG= 'FFD9EAD3'; // kazanç yeşil
+  const AMBBG = 'FFFFF3CD'; // HAR sarı
+  const BLUBG = 'FFC6D9F1'; // maliyet mavi
+  const WHT   = 'FFFFFFFF';
+  const BLK   = 'FF000000';
+  const MUT   = 'FF888888';
+  const GRNTX = 'FF1E5631';
+  const AMBTX = 'FF7A4F00';
+  const BLUTX = 'FF1565C0';
+  const PURTX = 'FF6A1B9A';
+
+  // Her hisse için satır arka plan + kod rengi (referans Excel'den birebir)
+  const ROW_STYLE = {
+    green:  {rowbg:'FFF1FBF1', codetx:'FF2E7D32'},
+    blue:   {rowbg:'FFEFF6FF', codetx:'FF1565C0'},
+    purple: {rowbg:'FFF8F0FF', codetx:'FF6A1B9A'},
+    red:    {rowbg:'FFFFF3F3', codetx:'FFB71C1C'},
+    amber:  {rowbg:'FFFFF9E6', codetx:'FF7A4F00'},
+    teal:   {rowbg:'FFF0FFFD', codetx:'FF006B5E'},
+  };
+
+  /* --- Sayfa oluşturucu --- */
+  function makeSheet(rows, colWidths, merges) {
+    const ws = {};
+    rows.forEach((row, r) => {
+      (row||[]).forEach((c2, c) => {
+        if (c2 == null) return;
+        const addr = XLSX.utils.encode_cell({r, c});
+        if (typeof c2 === 'object' && 'v' in c2) {
+          ws[addr] = {v:c2.v, t:c2.t||'s', s:c2.s};
+          if (c2.z) ws[addr].z = c2.z;
+        } else {
+          ws[addr] = {v:c2, t:typeof c2==='number'?'n':'s'};
+        }
+      });
+    });
+    const maxR = rows.length - 1;
+    const maxC = Math.max(...rows.map(r => (r||[]).length), 1) - 1;
+    ws['!ref'] = XLSX.utils.encode_range({s:{r:0,c:0}, e:{r:maxR,c:maxC}});
+    if (colWidths) ws['!cols'] = colWidths.map(w => ({wch:w}));
+    if (merges)    ws['!merges'] = merges;
+    return ws;
+  }
+
+  /* ══════════════════════════════════════════════
+     SAYFA 1 — ÖZET
+  ══════════════════════════════════════════════ */
+  const N = lastR.length;
+  const ozRows = [];
+  // Başlık (2 satır birleşik)
+  const ozTitle = lastR.length<=4
+    ? `📊  HALKA ARZ SİMÜLATÖRÜ — ÖZET RAPOR  ·  ${lastR.map(r=>r.code).join(' · ')}`
+    : `📊  HALKA ARZ SİMÜLATÖRÜ — ÖZET RAPOR  ·  ${lastR.length} ADET ARZ`;
+  ozRows.push([cell(ozTitle,true,WHT,H1BG,14,null,'left',false,false),
+    ...Array(10).fill(cell('',false,WHT,H1BG,14,null,'center',false,false))]);
+  ozRows.push([cell(`Oluşturulma: ${tarih}  |  Kaynak: halkarz.com & KAP  |  Tavan Kuralı: Her Gün ×1.10  |  ⚠ Brüt kazanç — stopaj dahil değil`,
+    false,MUT,'FFF8F9FA',9,null,'left',true,false),
+    ...Array(10).fill(cell('',false,MUT,'FFF8F9FA',9,null,'center',true,false))]);
+  ozRows.push(null); // boş satır
+
+  // Sütun başlıkları
+  const OZ_HDRS = ['KOD','ŞİRKET ADI','HAR FİYATI','KİŞİ BAŞI LOT','TOPLAM MALİYET',
+    'BİREYSEL %','KATILIMCI','DURUM','5. GÜN KAZANCI','10. GÜN KAZANCI','10. GÜN GETİRİSİ'];
+  ozRows.push(OZ_HDRS.map(h => cell(h, true, WHT, H2BG, 10)));
+
+  lastR.forEach((r,ri) => {
+    const days = r.days;
+    const k5 = days[4].kaz, k10 = days[9].kaz;
+    const get = +((days[9].f/r.har-1)*100).toFixed(2);
+    const rs  = ROW_STYLE[r.color] || {rowbg:'FFEFF6FF', codetx:'FF1565C0'};
+    const rbg = rs.rowbg;
+    const codeClr = rs.codetx;
+    ozRows.push([
+      cell(r.code,   true,  codeClr, rbg,    12),
+      cell(r.name,   false, BLK,     rbg,    10, null,'left'),
+      cell(r.har,    true,  BLUTX,   rbg,    11, '#,##0.00 "TL"'),
+      cell(r.lot+' lot', true, GRNTX, GRENBG, 11),
+      cell(r.mal,    true,  BLUTX,   BLUBG,  11, '#,##0.00 "TL"'),
+      cell(r.pct,    false, BLK,     rbg,    11, '0.00"%"'),
+      cell(r.kat ? r.kat.toLocaleString('tr-TR') : '—', false, BLK, rbg, 11),
+      cell(BADGE[r.badge], true,
+        r.badge==='live'?GRNTX:r.badge==='wait'?PURTX:BLUTX,
+        r.badge==='live'?GRENBG:r.badge==='wait'?'FFE8D5F7':'FFDBEAFE', 10),
+      cell(k5,  true, GRNTX, GRENBG, 11, '#,##0.00 "TL"'),
+      cell(k10, true, GRNTX, GRENBG, 11, '#,##0.00 "TL"'),
+      cell(get, true, GRNTX, GRENBG, 11, '0.00"%"'),
+    ]);
+  });
+
+  // Notlar bölümü
+  const noteRow = 4 + N;
+  ozRows.push(null);
+  ozRows.push([cell('📌  NOTLAR VE AÇIKLAMALAR', true, WHT, H1BG, 10, null,'left',false,false),
+    ...Array(10).fill(cell('',false,WHT,H1BG,10,null,'center',false,false))]);
+  [
+    '• Tavan Kuralı: BİST\'te her seans, bir önceki kapanışın %10 üzeri maksimum fiyat sınırı uygulanır.',
+    '• Kişi Başı Lot = Toplam Bireysel Tahsisat Lotu ÷ Katılımcı Sayısı',
+    '• Maliyet = HAR (Halka Arz) Fiyatı × Kişi Başı Lot',
+    '• Kazanç = (Tavan Fiyatı − HAR Fiyatı) × Kişi Başı Lot  →  Brüt kazançtır.',
+    '• Stopaj: Hisse senedi alım-satım kârı üzerinden %0 stopaj (1 yıldan kısa elde tutmada %10).',
+    '• Bu tablo simülasyon amaçlıdır; gerçek piyasa koşulları farklılık gösterebilir.',
+  ].forEach(t => {
+    ozRows.push([cell(t,false,'FF333333','FFFAFAFA',9,null,'left',true,false),
+      ...Array(10).fill(cell('',false,'FF333333','FFFAFAFA',9,null,'left',true,false))]);
+  });
+
+  const ozMerges = [
+    {s:{r:0,c:0},e:{r:0,c:10}},
+    {s:{r:1,c:0},e:{r:1,c:10}},
+    {s:{r:noteRow+1,c:0},e:{r:noteRow+1,c:10}},
+  ];
+  for (let ni=0;ni<6;ni++) ozMerges.push({s:{r:noteRow+2+ni,c:0},e:{r:noteRow+2+ni,c:10}});
+
+  XLSX.utils.book_append_sheet(wb,
+    makeSheet(ozRows,[9,38,14,13,16,11,13,11,16,16,14], ozMerges),
+    '📊 Özet');
+
+  /* ══════════════════════════════════════════════
+     SAYFA 2 — TAVAN SERİSİ (hisseler yan yana)
+  ══════════════════════════════════════════════ */
+  const tvRows = [];
+  const SPAN = 1 + N*3;
+  tvRows.push([cell('📈  10 GÜNLÜK TAVAN SERİSİ — TÜM HİSSELER',true,WHT,H1BG,14,null,'center',false,false),
+    ...Array(SPAN-1).fill(cell('',false,WHT,H1BG,14,null,'center',false,false))]);
+  tvRows.push([cell(`${tarih}  |  Her Gün = Önceki Kapanış × 1.10  |  Brüt kazanç`,false,MUT,'FFF8F9FA',9,null,'center',true,false),
+    ...Array(SPAN-1).fill(cell('',false,MUT,'FFF8F9FA',9,null,'center',true,false))]);
+  tvRows.push(null);
+
+  // Hisse başlık satırı
+  const tvH1 = [cell('GÜN',true,WHT,H1BG,11)];
+  const tvH2 = [cell('',true,WHT,H2BG,9)];
+  const tvMerges = [
+    {s:{r:0,c:0},e:{r:0,c:SPAN-1}},
+    {s:{r:1,c:0},e:{r:1,c:SPAN-1}},
+  ];
+  lastR.forEach((r,ri) => {
+    const rs  = ROW_STYLE[r.color] || {rowbg:'FFEFF6FF', codetx:'FF1565C0'};
+    const scx = CM[r.color]?.xls || H2BG;
+    const lbl = `${r.code}  ·  ${r.lot} lot  ·  HAR: ${r.har} TL  ·  Maliyet: ${fmtTLraw(r.mal)} TL`;
+    // kod sütunu hisse rengiyle, veriler satır bg ile
+    tvH1.push(cell(lbl,true,WHT,scx,11), cell('',false,WHT,scx,9), cell('',false,WHT,scx,9));
+    tvH2.push(
+      cell('HİSSE FİYATI (TL)',true,WHT,H2BG,9),
+      cell('TOPLAM TUTAR (TL)',true,WHT,H2BG,9),
+      cell('KAZANÇ (TL)',true,WHT,H2BG,9),
+    );
+    tvMerges.push({s:{r:3,c:1+ri*3},e:{r:3,c:3+ri*3}});
+  });
+  tvRows.push(tvH1);
+  tvRows.push(tvH2);
+
+  // HAR satırı
+  const harRow = [cell('● HAR (Başlangıç)',true,AMBTX,AMBBG,10)];
+  lastR.forEach(r => {
+    harRow.push(
+      cell(r.har,  true, BLUTX, AMBBG, 11, '#,##0.00 "TL"'),
+      cell(r.mal,  true, BLUTX, BLUBG, 11, '#,##0.00 "TL"'),
+      cell('—',    false, MUT,  AMBBG, 11),
+    );
+  });
+  tvRows.push(harRow);
+
+  for (let gi = 0; gi < 10; gi++) {
+    // Her hisse kendi renk bandıyla
+    const row = [cell(`${gi+1}. GÜN`, true, BLK, 'FFF2F2F2', 10)];
+    lastR.forEach(r => {
+      const rs  = ROW_STYLE[r.color] || {rowbg:'FFEFF6FF'};
+      const rbg = gi%2===0 ? rs.rowbg : 'FFFFFFFF';
+      const d = r.days[gi];
+      row.push(
+        cell(d.f,   false, BLK,   rbg,    11, '#,##0.00 "TL"'),
+        cell(d.top, false, BLUTX, BLUBG,  11, '#,##0.00 "TL"'),
+        cell(d.kaz, true,  GRNTX, GRENBG, 11, '#,##0.00 "TL"'),
+      );
+    });
+    tvRows.push(row);
+  }
+
+  const tvCols = [{wch:14}];
+  lastR.forEach(() => tvCols.push({wch:16},{wch:17},{wch:15}));
+  XLSX.utils.book_append_sheet(wb, makeSheet(tvRows, tvCols.map(c=>c.wch), tvMerges), '📈 Tavan Serisi');
+
+  /* ══════════════════════════════════════════════
+     SAYFA 3+N — Her Hisse Ayrı Detay
+  ══════════════════════════════════════════════ */
+  lastR.forEach(r => {
+    const scx = CM[r.color]?.xls || H2BG;
+    const rows2 = [];
+
+    // Başlık
+    rows2.push([
+      cell(`${r.code}  —  ${r.name}`, true, WHT, scx, 14, null, 'left', false, false),
+      ...Array(4).fill(cell('',false,WHT,scx,14,null,'center',false,false))
+    ]);
+    rows2.push([
+      cell(`Tarih: ${tarih}  |  Kaynak: halkarz.com`, false, MUT, 'FFF8F9FA', 9, null,'left',true,false),
+      ...Array(4).fill(cell('',false,MUT,'FFF8F9FA',9,null,'center',true,false))
+    ]);
+    rows2.push(null);
+
+    // Özet bilgi kutusu (2×3 grid)
+    const rs2 = ROW_STYLE[r.color] || {rowbg:'FFEFF6FF', codetx:'FF1565C0'};
+    rows2.push([
+      cell('HAR FİYATI',       true, WHT,   H2BG,  10),
+      cell(r.har,              true, BLUTX, rs2.rowbg, 11, '#,##0.00 "TL"'),
+      cell('KİŞİ BAŞI LOT',    true, WHT,   H2BG,  10),
+      cell(r.lot+' lot',       true, GRNTX, GRENBG, 11),
+      cell(BADGE[r.badge],     true,
+        r.badge==='live'?GRNTX:r.badge==='wait'?PURTX:BLUTX,
+        r.badge==='live'?GRENBG:r.badge==='wait'?'FFE8D5F7':'FFDBEAFE', 10),
+    ]);
+    rows2.push([
+      cell('TOPLAM MALİYET',    true, WHT,   H2BG,  10),
+      cell(r.mal,               true, BLUTX, BLUBG, 11, '#,##0.00 "TL"'),
+      cell('BİREYSEL TAHSİSAT', true, WHT,   H2BG,  10),
+      cell(r.pct,               false, BLK,  rs2.rowbg, 11, '0.00"%"'),
+      cell(r.kat ? r.kat.toLocaleString('tr-TR')+' katılımcı':'—', false, MUT, rs2.rowbg, 10),
+    ]);
+    rows2.push([
+      cell('5. GÜN KAZANCI',   true, WHT,   H2BG,  10),
+      cell(r.days[4].kaz,      true, GRNTX, GRENBG,11, '#,##0.00 "TL"'),
+      cell('10. GÜN KAZANCI',  true, WHT,   H2BG,  10),
+      cell(r.days[9].kaz,      true, GRNTX, GRENBG,11, '#,##0.00 "TL"'),
+      cell(+((r.days[9].f/r.har-1)*100).toFixed(2), true, GRNTX, GRENBG, 11, '0.00"%"'),
+    ]);
+    rows2.push(null);
+
+    // Tablo başlık
+    rows2.push(['GÜN','HİSSE FİYATI (TL)','TOPLAM TUTAR (TL)','KİŞİ BAŞI KAZANÇ (TL)','GETİRİ (%)']
+      .map(h => cell(h, true, WHT, scx, 10)));
+
+    // HAR satırı
+    rows2.push([
+      cell('● HAR (Başlangıç)', true, AMBTX, AMBBG, 10),
+      cell(r.har,   true, AMBTX, AMBBG, 11, '#,##0.00 "TL"'),
+      cell(r.mal,   true, BLUTX, AMBBG, 11, '#,##0.00 "TL"'),
+      cell('—',     false, MUT,  AMBBG, 11),
+      cell('0,00%', false, MUT,  AMBBG, 11),
+    ]);
+
+    r.days.forEach((d, gi) => {
+      const rs  = ROW_STYLE[r.color] || {rowbg:'FFEFF6FF'};
+      const rbg = gi%2===0 ? rs.rowbg : 'FFFFFFFF';
+      const getv = +((d.f/r.har-1)*100).toFixed(2);
+      rows2.push([
+        cell(`${d.g}. GÜN`,  gi>=4, BLK,   rbg,    10),
+        cell(d.f,  false, BLK,   rbg,    11, '#,##0.00 "TL"'),
+        cell(d.top,false, BLUTX, BLUBG,  11, '#,##0.00 "TL"'),
+        cell(d.kaz,true,  GRNTX, GRENBG, 11, '#,##0.00 "TL"'),
+        cell(getv, true,  GRNTX, GRENBG, 11, '0.00"%"'),
+      ]);
+    });
+
+    const ws2merges = [
+      {s:{r:0,c:0},e:{r:0,c:4}},
+      {s:{r:1,c:0},e:{r:1,c:4}},
+    ];
+    XLSX.utils.book_append_sheet(wb,
+      makeSheet(rows2, [18,18,18,20,13], ws2merges),
+      r.code.substring(0,25)+' — Detay');
+  });
+
+  /* ══════════════════════════════════════════════
+     SAYFA SON — KARŞILAŞTIRMA (eğer 2+ hisse)
+  ══════════════════════════════════════════════ */
+  if (lastR.length >= 2) {
+    const kRows = [];
+    kRows.push([cell('⚖️  HANGİ ARZ DAHA KAZANÇLI? — KARŞILAŞTIRMA',true,WHT,H1BG,14,null,'center',false,false),
+      ...Array(lastR.length).fill(cell('',false,WHT,H1BG))]);
+    kRows.push([cell(`${tarih}  |  ${lastR.length} hisse karşılaştırması`,false,MUT,'FFF8F9FA',9,null,'center',true,false),
+      ...Array(lastR.length).fill(cell('',false,MUT,'FFF8F9FA',9))]);
+    kRows.push(null);
+
+    const kH = [cell('METRİK',true,WHT,H2BG,10,null,'left')];
+    lastR.forEach(r => {
+      const scx = CM[r.color]?.xls || H2BG;
+      kH.push(cell(r.code, true, WHT, scx, 12));
+    });
+    kRows.push(kH);
+
+    const metrics = [
+      ['HAR Fiyatı (TL)',  r => r.har,              '#,##0.00 "TL"', false],
+      ['Kişi Başı Lot',    r => r.lot+' lot',        null,            false],
+      ['Toplam Maliyet',   r => r.mal,               '#,##0.00 "TL"', false],
+      ['Bireysel %',       r => r.pct,               '0.00"%"',       false],
+      ['3. Gün Kazanç',    r => r.days[2].kaz,       '#,##0.00 "TL"', true],
+      ['5. Gün Kazanç',    r => r.days[4].kaz,       '#,##0.00 "TL"', true],
+      ['7. Gün Kazanç',    r => r.days[6].kaz,       '#,##0.00 "TL"', true],
+      ['10. Gün Kazanç',   r => r.days[9].kaz,       '#,##0.00 "TL"', true],
+      ['10. Gün Getiri',   r => +((r.days[9].f/r.har-1)*100).toFixed(2), '0.00"%"', true],
+    ];
+
+    metrics.forEach(([lbl, fn, fmt, isKazanc], mi) => {
+      const rbg = mi%2===0 ? 'FFF5F5F5' : 'FFFFFFFF';
+      const row = [cell(lbl, true, WHT, H1BG, 10, null, 'left')];
+      const vals = lastR.map(r => typeof fn(r)==='number' ? fn(r) : fn(r));
+      const maxVal = isKazanc ? Math.max(...vals.filter(v=>typeof v==='number')) : null;
+      lastR.forEach((r) => {
+        const rs   = ROW_STYLE[r.color] || {rowbg:'FFEFF6FF'};
+        const cellbg = isKazanc ? rs.rowbg : rbg;
+        const v = fn(r);
+        const isBest = isKazanc && typeof v==='number' && v===maxVal;
+        row.push(cell(v, isBest, isBest?GRNTX:(rs.codetx||BLK), isBest?GRENBG:cellbg, 11, fmt));
+      });
+      kRows.push(row);
+    });
+
+    // En iyi kazanç satırı
+    const best = lastR.reduce((a,b) => b.days[9].kaz > a.days[9].kaz ? b : a);
+    kRows.push(null);
+    kRows.push([
+      cell(`🏆  10. Gün En Yüksek Kazanç: ${best.code} — ${fmtTLraw(best.days[9].kaz)} TL brüt`,
+        true, GRNTX, GRENBG, 12, null, 'left', false, false),
+      ...Array(lastR.length).fill(cell('',true,GRNTX,GRENBG))
+    ]);
+
+    const kMerges = [
+      {s:{r:0,c:0},e:{r:0,c:lastR.length}},
+      {s:{r:1,c:0},e:{r:1,c:lastR.length}},
+      {s:{r:kRows.length-1,c:0},e:{r:kRows.length-1,c:lastR.length}},
+    ];
+    const kCols = [{wch:20}];
+    lastR.forEach(()=>kCols.push({wch:16}));
+    XLSX.utils.book_append_sheet(wb, makeSheet(kRows, kCols.map(c=>c.wch), kMerges), '⚖️ Karşılaştırma');
+  }
+
+  XLSX.writeFile(wb, `HalkArz_${new Date().toISOString().slice(0,10)}.xlsx`);
+  showToast(`✓ Excel indirildi — ${2+lastR.length+(lastR.length>=2?1:0)} sayfa!`);
+}
+
+// ── YARDIMCI ────────────────────────────────────────────────────
+function fmtTL(n)    { return '₺'+n.toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtTL4(n)   { return '₺'+n.toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:4}); }
+function fmtTLraw(n) { return n.toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 3000);
+}
+
+// ── HİSSE YÖNETİMİ ──────────────────────────────────────────────
+function addStock() {
+  stocks.push({code:'',name:'',har:10,tbl:0,kat:0,lot:100,pct:40,badge:'new',color:'amber'});
+  renderStocks();
+  setTimeout(()=>document.getElementById(`code-${stocks.length-1}`)?.focus(), 60);
+  showToast('＋ Yeni hisse eklendi — kodu ve adını girin');
+}
+
+function delStock(i) {
+  stocks.splice(i,1);
+  renderStocks();
+  document.getElementById('results').style.display='none';
+  document.getElementById('btnxl').style.display='none';
+  lastR=[];
+}
+
+function loadSample() {
+  stocks = SAMPLE.map(s=>({...s}));
+  lastR=[];
+  document.getElementById('results').style.display='none';
+  document.getElementById('btnxl').style.display='none';
+  renderStocks();
+  showToast('✓ 2026 Halka Arzları yüklendi — ' + SAMPLE.length + ' arz (Ocak → Mart)');
+}
+
+function clearAll() {
+  stocks=[];lastR=[];
+  document.getElementById('results').style.display='none';
+  document.getElementById('btnxl').style.display='none';
+  renderStocks();
+  showToast('✕ Tüm hisseler temizlendi');
+}
+
+// ── BİLDİRİM SİSTEMİ ────────────────────────────────────────────
+
+// !! SUPABASE AYARLARI — supabase.com'dan alın !!
+let SUPA_URL  = localStorage.getItem('supa_url')  || 'https://ugsrfrpkqfaxigqxudka.supabase.co';
+let SUPA_KEY  = localStorage.getItem('supa_key')  || 'sb_publishable_KTe-_Tjmiprhr20tS4NLyg_ZnE8uD6H';
+let VAPID_KEY = localStorage.getItem('supa_vapid')|| 'BCoc9-YlBVIpSm7bg9kDatueSQFoid6GNJ2OpYySi6FFGqTifQf4hDsE4GMI5eHutKz-1hEdb-DZSYcCGlJB3fU';
+
+// Admin modu: URL'de ?admin=1 VEYA Ctrl+Shift+A ile aç
+function checkAdminMode() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('admin') === '1') {
+      showAdminPanel();
+      return;
+    }
+  } catch(e) {}
+}
+
+function showAdminPanel() {
+  const el = document.getElementById('admin-section');
+  if (el) {
+    el.style.display = 'block';
+    // Kaydedilmiş değerleri kutulara doldur
+    const urlEl = document.getElementById('cfg-url');
+    const keyEl = document.getElementById('cfg-key');
+    if (urlEl && SUPA_URL) urlEl.value = SUPA_URL;
+    if (keyEl && SUPA_KEY) keyEl.value = SUPA_KEY;
+    previewConfig();
+    el.scrollIntoView({behavior:'smooth', block:'start'});
+    loadAdminStats();
+  }
+}
+
+function previewConfig() {
+  const url = document.getElementById('cfg-url')?.value.trim();
+  const key = document.getElementById('cfg-key')?.value.trim();
+  const st  = document.getElementById('cfg-status');
+  if (!st) return;
+  if (url && key) {
+    st.style.color = '#00d4aa';
+    st.textContent = '✓ Hazır — KAYDET butonuna basın';
+  } else if (url || key) {
+    st.style.color = '#f4b942';
+    st.textContent = '⚠ Her iki alanı da doldurun';
+  } else {
+    st.style.color = 'rgba(255,255,255,.4)';
+    st.textContent = 'Supabase URL ve API Key girerek kaydedin';
+  }
+}
+
+// Ctrl+Shift+A ile admin paneli aç
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
+    e.preventDefault();
+    const el = document.getElementById('admin-section');
+    if (!el) return;
+    if (el.style.display === 'none' || el.style.display === '') {
+      const pwd = prompt('Admin şifresi:');
+      if (pwd === 'minimalyatirim2026') {
+        showAdminPanel();
+        showToast('🛠 Admin paneli açıldı');
+      } else if (pwd !== null) {
+        showToast('❌ Yanlış şifre');
+      }
+    } else {
+      el.style.display = 'none';
+      showToast('Admin paneli kapatıldı');
+    }
+  }
+});
+
+function saveConfig() {
+  const url   = document.getElementById('cfg-url')?.value.trim();
+  const key   = document.getElementById('cfg-key')?.value.trim();
+  const vapid = document.getElementById('cfg-vapid')?.value.trim();
+  if (url)   { SUPA_URL   = url;   localStorage.setItem('supa_url',   url);   }
+  if (key)   { SUPA_KEY   = key;   localStorage.setItem('supa_key',   key);   }
+  if (vapid) { VAPID_KEY  = vapid; localStorage.setItem('supa_vapid', vapid); }
+  showToast('✓ Supabase ayarları kaydedildi');
+  document.getElementById('setup-guide').style.display = 'none';
+}
+
+function copyCode(btn, text) {
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = '✓ Kopyalandı';
+    setTimeout(() => btn.textContent = '📋 Kopyala', 2000);
+  });
+}
+
+// Modal aç/kapat
+function openNotifModal() {
+  updateNotifModalStatus();
+  document.getElementById('notif-modal').classList.remove('hidden');
+}
+function closeNotifModal() {
+  document.getElementById('notif-modal').classList.add('hidden');
+}
+document.getElementById('notif-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('notif-modal')) closeNotifModal();
+});
+
+function updateNotifModalStatus() {
+  const status = document.getElementById('notif-status');
+  const btn    = document.getElementById('notif-main-btn');
+  const nb     = document.getElementById('btn-notif');
+  if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+    status.innerHTML = `<div class="notif-bar err"><div class="notif-dot"></div>Bu tarayıcı bildirimlerini desteklemiyor.</div>`;
+    btn.disabled = true; return;
+  }
+  const perm = Notification.permission;
+  if (perm === 'granted') {
+    status.innerHTML = `<div class="notif-bar"><div class="notif-dot"></div>✅ Bildirimler aktif — yeni arz geldiğinde haber alacaksınız.</div>`;
+    btn.textContent = '✓ Bildirimler Aktif';
+    btn.disabled = true;
+    nb.textContent = '🔔 BİLDİRİM AKTİF';
+    nb.className = 'btn btn-notif active';
+  } else if (perm === 'denied') {
+    status.innerHTML = `<div class="notif-bar err"><div class="notif-dot"></div>❌ Bildirim izni reddedildi. Tarayıcı ayarlarından açın.</div>`;
+    btn.textContent = 'İzin Reddedildi';
+    btn.disabled = true;
+    nb.className = 'btn btn-notif denied';
+  } else {
+    status.innerHTML = `<div class="notif-bar warn"><div class="notif-dot"></div>Bildirim almak için izin verin.</div>`;
+    btn.textContent = '🔔 BİLDİRİMLERİ AKTİF ET';
+    btn.disabled = false;
+  }
+}
+
+async function requestNotifPermission() {
+  if (!('Notification' in window)) {
+    showToast('❌ Tarayıcınız bildirimleri desteklemiyor'); return;
+  }
+  const perm = await Notification.requestPermission();
+  if (perm === 'granted') {
+    showToast('✅ Bildirim izni verildi!');
+    await subscribePush();
+  } else {
+    showToast('❌ Bildirim izni reddedildi');
+  }
+  updateNotifModalStatus();
+}
+
+async function subscribePush() {
+  if (!SUPA_URL || !SUPA_KEY) {
+    // Supabase ayarlanmamışsa local'e kaydet, kurulum rehberini göster
+    localStorage.setItem('notif_pending', '1');
+    document.getElementById('setup-guide').style.display = 'block';
+    document.getElementById('setup-guide').scrollIntoView({behavior:'smooth'});
+    showToast('⚙️ Supabase ayarlarını yapın — rehber açıldı');
+    return;
+  }
+  if (!VAPID_KEY) {
+    showToast('⚠ VAPID anahtarı eksik — kurulum rehberini tamamlayın'); return;
+  }
+  try {
+    const reg = await navigator.serviceWorker.register('/sw.js');
+    await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_KEY)
+    });
+    const { endpoint, keys: { p256dh, auth } } = sub.toJSON();
+    const res = await fetch(`${SUPA_URL}/rest/v1/push_subscribers`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPA_KEY,
+        'Authorization': `Bearer ${SUPA_KEY}`,
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({ endpoint, p256dh, auth })
+    });
+    if (res.ok || res.status === 409) {
+      showToast('✅ Bildirim aboneliği tamamlandı!');
+      closeNotifModal();
+    } else {
+      throw new Error('Supabase kayıt hatası: ' + res.status);
+    }
+  } catch(e) {
+    console.error(e);
+    showToast('⚠ Abonelik kaydedilemedi: ' + e.message);
+  }
+}
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64  = (base64String + padding).replace(/-/g,'+').replace(/_/g,'/');
+  const raw     = atob(base64);
+  return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}
+
+// Admin: abone sayısını çek
+async function loadAdminStats() {
+  if (!SUPA_URL || !SUPA_KEY) {
+    document.getElementById('stat-status').textContent = 'AYAR EKSİK';
+    return;
+  }
+  try {
+    const res = await fetch(`${SUPA_URL}/rest/v1/push_subscribers?select=id`, {
+      headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}`,
+        'Prefer': 'count=exact' }
+    });
+    const count = res.headers.get('content-range')?.split('/')[1] || '?';
+    document.getElementById('stat-subs').textContent = count;
+    document.getElementById('stat-status').textContent = 'HAZIR';
+  } catch(e) {
+    document.getElementById('stat-status').textContent = 'HATA';
+  }
+}
+
+// Admin: bildirim gönder (Supabase Edge Function üzerinden)
+async function sendAdminNotif() {
+  const title = document.getElementById('notif-title').value.trim();
+  const body  = document.getElementById('notif-body').value.trim();
+  if (!title) { showToast('Bildirim başlığı girin'); return; }
+  if (!SUPA_URL || !SUPA_KEY) { showToast('⚠ Supabase ayarları eksik'); return; }
+  document.getElementById('stat-status').textContent = 'GÖNDERİLİYOR...';
+  try {
+    const res = await fetch(`${SUPA_URL}/functions/v1/send-push`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SUPA_KEY}` },
+      body: JSON.stringify({ title, body })
+    });
+    if (res.ok) {
+      const d = await res.json();
+      document.getElementById('stat-sent').textContent = d.sent || '✓';
+      document.getElementById('stat-status').textContent = 'GÖNDERİLDİ ✓';
+      showToast(`✅ ${d.sent || ''} kullanıcıya bildirim gönderildi!`);
+    } else {
+      throw new Error(await res.text());
+    }
+  } catch(e) {
+    document.getElementById('stat-status').textContent = 'HATA';
+    showToast('❌ Gönderim hatası: ' + e.message);
+  }
+}
+
+// Sayfa açılışında durum kontrol
+window.addEventListener('load', () => {
+  if (Notification.permission === 'granted') {
+    const nb = document.getElementById('btn-notif');
+    nb.textContent = '🔔 BİLDİRİM AKTİF';
+    nb.className = 'btn btn-notif active';
+  }
+  // Supabase ayarlanmamışsa rehberi göster (admin modunda)
+  if (new URLSearchParams(location.search).get('admin') === '1' && (!SUPA_URL || !SUPA_KEY)) {
+    document.getElementById('setup-guide').style.display = 'block';
+  }
+  checkAdminMode();
+});
+
+function openAdminFromFooter() {
+  const el = document.getElementById('admin-section');
+  if (!el) return;
+  if (el.style.display === 'none' || el.style.display === '') {
+    const pwd = prompt('Admin şifresi:');
+    if (pwd === 'minimalyatirim2026') {
+      showAdminPanel();
+      showToast('🛠 Admin paneli açıldı');
+    } else if (pwd !== null) {
+      showToast('❌ Yanlış şifre');
+    }
+  } else {
+    el.style.display = 'none';
+    showToast('Admin paneli kapatıldı');
+  }
+}
+
+// ── BAŞLAT ──────────────────────────────────────────────────────
+clearAll();
+</script>
+</body>
+</html>
